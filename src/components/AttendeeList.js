@@ -6,11 +6,9 @@ const AttendeeList = ({ eventId }) => {
   const [editingAttendee, setEditingAttendee] = useState(null);
   const [updatedData, setUpdatedData] = useState({ name: "", email: "" });
 
-
   useEffect(() => {
     getAttendees(eventId).then((res) => setAttendees(res.data));
   }, [eventId]);
-
 
   const handleRemove = (id) => {
     removeAttendee(eventId, id).then(() => {
@@ -18,19 +16,16 @@ const AttendeeList = ({ eventId }) => {
     });
   };
 
-
   const handleRSVP = (id) => {
     updateAttendee(eventId, id, { rsvp: true }).then((res) => {
       setAttendees(attendees.map((a) => (a.id === id ? res.data : a)));
     });
   };
 
-
   const handleEditClick = (attendee) => {
     setEditingAttendee(attendee);
     setUpdatedData({ name: attendee.name, email: attendee.email });
   };
-
 
   const handleUpdate = (id) => {
     updateAttendee(eventId, id, updatedData).then((res) => {
@@ -39,7 +34,6 @@ const AttendeeList = ({ eventId }) => {
     });
   };
 
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setUpdatedData((prevData) => ({
@@ -47,7 +41,6 @@ const AttendeeList = ({ eventId }) => {
       [name]: value,
     }));
   };
-
 
   const handleCancel = () => {
     setEditingAttendee(null);
@@ -69,9 +62,6 @@ const AttendeeList = ({ eventId }) => {
               <small>{attendee.event?.recurrence}</small>
             </div>
 
-
-
- 
             <button onClick={() => handleRemove(attendee.id)} className="btn btn-danger btn-sm ms-2">
               Remove
             </button>
@@ -82,11 +72,9 @@ const AttendeeList = ({ eventId }) => {
               </button>
             )}
 
-
             <button onClick={() => handleEditClick(attendee)} className="btn btn-warning btn-sm ms-2">
               Update
             </button>
-
 
             {editingAttendee && editingAttendee.id === attendee.id && (
               <div className="mt-2">
@@ -109,7 +97,6 @@ const AttendeeList = ({ eventId }) => {
                 <button onClick={() => handleUpdate(attendee.id)} className="btn btn-primary btn-sm me-2">
                   Save
                 </button>
- 
                 <button onClick={handleCancel} className="btn btn-secondary btn-sm">
                   Cancel
                 </button>
