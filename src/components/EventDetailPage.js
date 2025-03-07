@@ -1,0 +1,506 @@
+import React, {useState, useEffect} from "react";
+import axios from 'axios';
+import { Container, Row, Col, Card, Button, Form, ListGroup, Badge, Alert, Tabs, Tab} from 'react-bootstrap'
+
+const EventDetailPage = ({eventId}) => {
+
+    const [event, setEvent] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const [comments, setComments] = useState([]);
+    const [newComment, setNewComment] = useState('');
+    const [commentError, setCommentError] = useState('');
+
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [favoriteError, setFavoriteError] = useState('');
+
+    const [tickets, setTickets] = useState([])
+    const [selectedTickets, setSelectedTickets] = useState([]);
+    const [ticketPurchaseSuccess, setTicketPurchaseSuccess] = useState(false);
+    const [editingComment,setEditingComment] = useState(null);
+    const [editingTicket, setEditingTicket] = useState(null);
+    const [updatedCommentContent, setUpdatedCommentContent] = useState("");
+    const [updatedTicketData, setUpdatedTicketData] = useState({
+        price: "",
+        seat_number: ""
+    })
+    // initialise to this index
+    const userId = 1;
+
+
+    useEffect(() => {
+        const fetchEventData = async () =>{
+            try{
+                setLoading(true);
+                const eventResponse = await axios.get(`/events/${eventId}`);
+                setEvent(eventResponse.data);
+
+                const commentsResponse = await axios.get(`/events/${eventId}/comments`);
+                setComments(commentsResponse.data)
+
+                try{
+                    const favoriteResponse = await axios.get(`/users/${userId}/favourites`);
+                    const userFavorites = favoriteResponse.data;
+                    setIsFavorite(userFavorites.some(fav => fav.event_id === eventId));
+                } catch (err){
+                    console.error("Error checking favourite status:", err);
+                }
+
+                const ticketsResponse = await axios.get(`/events/${eventId}/tickets`);
+                setTickets(ticketsResponse.data);
+
+                setLoading(false);
+            } catch (err){
+                setError('Failed to load event data. Please try again later');
+                setLoading(false);
+                console.error(err);
+            }
+        }
+
+        fetchEventData();
+    }, [eventId, userId]);
+
+    const handleAddComment = async (e) => {
+        e.preventDefault();
+
+        if (!newComment.trim()) {
+            setCommentError('Comment cannot be empty');
+            return;
+        }
+
+        try{
+            const response = await axios.post(`/events/${eventId}/comments`, {
+                comment: {
+                    content: newComment,
+                    user_id: userId,
+                    event_id: eventId
+                }
+            });
+
+            setComments([...comments, response.data]);
+            setNewComment('');
+            setCommentError('');
+        } catch (err) {
+            setCommentError('Failed to add comment. Please try again')
+            console.error(err);
+        }
+    };
+
+    const handleToggleFavorite = async () => {
+        try {
+            if (isFavorite) {
+                const favoriteResponse = await axios.get(`/users/${userId}/favourites`);
+                const favorite = favoriteResponse.data.find(fav => fav.event_id === eventId);
+
+                if (favorite) {
+                    await axios.delete(`/favourites/${favorite.id}`);
+                    setIsFavorite(false);
+                }
+            } else {
+                await axios.post('favourites', {
+                    favourite: {
+                        user_id: userId,
+                        event_id: eventId
+                    }
+                });
+                setIsFavorite(true);
+            }
+            setFavoriteError('');
+        }catch (err){
+
+            setIsFavorite('Failed to update favorite status. Please try again');
+            console.error(err);
+        }
+    };
+
+    const handleTicketSelection = (ticketId) => {
+        if (selectedTickets.includes(ticketId)) {
+            setSelectedTickets(selectedTickets.filter(id => id !== ticketId));
+        } else{
+            setSelectedTickets([...selectedTickets, ticketId]);
+        }
+    }
+
+    const handleGenerateTickets = async () => {
+        try{
+            await axios.post(`/events/${eventId}/generate_tickets`);
+            const ticketResponse = await axios.get(`/events/${eventId}/tickets`);
+            setTickets(ticketResponse.data);
+            alert('Tickets have been generated successfully')
+        }catch(err){
+            console.error('Error generating tickets:', err)
+            alert('Failed to generate tickets');
+        }
+    }
+
+    const handleDeleteComment = async (commentId) => {
+        try{
+            await axios.delete(`/events/${eventId}/comments/${commentId}`);
+            setComments(comments.filter(comment => comment.id !== commentId));
+        }catch (err){
+            console.error("Error deleting comment:", err)
+            if (err.response && err.response.status === 404){
+                setComments(comments.filter(comment => comment.id !== commentId))
+                console.log("Comment was already deleted or doesn't exist")
+            }else {
+                alert("Failed to delete comment")
+            }
+        }
+    };
+
+    const handleUpdateComment = async (commentId, updatedComment) => {
+        try {
+            const response = await axios.patch(`/events/${eventId}/comments/${commentId}`, {
+                comment: {
+                    content: updatedComment
+                }
+            });
+            setComments(comments.map(comment =>
+                comment.id === commentId ? response.data : comment
+            ))
+            setEditingComment(null);
+        }catch (err){
+            console.error("Error updating comment", err);
+            alert("Failed to update comment")
+        }
+    }
+
+    const handleDeleteTicket = async (ticketId) => {
+        try{
+            await axios.delete(`/tickets/${ticketId}`);
+            setTickets(tickets.filter(ticket => ticket.id !== ticketId));
+        }catch (err){
+            console.error("Error deleting tickets", err);
+            alert("Failed to delete ticket")
+        }
+    }
+
+    const handleUpdateTicket = async (ticketId, updatedData) =>{
+        try{
+            const response = await axios.patch(`/tickets/${ticketId}`, {
+                ticket: updatedData
+            });
+            setTickets(tickets.map(ticket =>
+                ticket.id === ticketId ? response.data :ticket
+            ))
+            setEditingTicket(null)
+        } catch (err) {
+            console.error("Error updating ticket:", err)
+            alert("Failed to update ticket")
+        }
+    }
+    const handlePurchaseTickets = async () => {
+        if(selectedTickets.length === 0) return;
+
+        try{
+            const purchasePromises = selectedTickets.map(ticketId =>
+                axios.patch(`/tickets/${ticketId}`, {
+                    ticket: {
+                        user_id: userId
+                    }
+
+                })
+            )
+
+            await Promise.all(purchasePromises);
+
+            const updatedTickets = tickets.map(ticket =>{
+                if(selectedTickets.includes(ticket.id)){
+                    return { ...ticket, user_id: userId};
+                }
+                return ticket;
+            });
+
+            setTickets(updatedTickets);
+            setSelectedTickets([]);
+            setTicketPurchaseSuccess(true);
+
+            setTimeout(() =>{
+                setTicketPurchaseSuccess(false);
+            }, 3000);
+        } catch (err){
+            console.error("Error purchasing tickets:", err);
+        }
+    };
+
+    if (loading) return <div className="text-center my-5">Loading event details...</div>;
+    if (error) return <Alert variant="danger">{error}</Alert>;
+    if (!event) return <Alert variant="warning">Event not found</Alert>;
+
+    return(
+        <Container className="py-5">
+            <Row className="mb-4">
+                <Col>
+                    <div className="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h1>{event.title}</h1>
+                            <p className="text-muted">{new Date(event.date).toLocaleString()}</p>
+                            <p>Location: {event.location}</p>
+                        </div>
+                        <Button
+                            variant={isFavorite ? "warning" : "outline-warning"}
+                            onClick={handleToggleFavorite}
+                            className="ms-2"
+                        >
+
+                            {isFavorite ? 'Favorited' : 'Add to Favorites'}
+                        </Button>
+                    </div>
+                    {favoriteError && <Alert variant="danger">{favoriteError}</Alert>}
+                </Col>
+            </Row>
+
+            <Row className="mb-4">
+                <Col>
+                    <Card>
+                        <Card.Body>
+                            <Card.Title>Event Description</Card.Title>
+                            <Card.Text>{event.description}</Card.Text>
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row>
+
+            <Tabs defaultActiveKey="comments" className="mb-5">
+                <Tab eventKey="comments" title="Comments">
+                    <Card className="mt-3">
+                        <Card.Body>
+                            <Card.Title>Comments & Notes</Card.Title>
+
+                            <ListGroup variant="flush" className="mb-4">
+                                {comments.length === 0 ? (
+                                    <ListGroup.Item>No comments yet. Be the first to add one</ListGroup.Item>
+                                ):(
+                                    comments.map(comment => (
+                                        <ListGroup.Item key={comment.id}>
+                                            <div className="d-flex justify-content-between">
+                                                <div>
+                                                    <strong>User {comment.user_id}</strong> <small className="text-muted">{new Date(comment.created_at).toLocaleString()}</small>
+                                                </div>
+                                                <div>
+                                                    <Button
+                                                        variant="outline-primary"
+                                                        size="sm"
+                                                        className="me-2"
+                                                        onClick={() => {
+                                                            setEditingComment(comment.id);
+                                                            setUpdatedCommentContent(comment.content)
+                                                        }}
+                                                    >
+                                                        Edit
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline-danger"
+                                                        size="sm"
+                                                        onClick={() => handleDeleteComment(comment.id)}
+
+                                                    >
+                                                        Delete
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                            {editingComment === comment.id ? (
+                                                <Form className="mt-2" onSubmit={(e) => {
+                                                    e.preventDefault()
+                                                    handleUpdateComment(comment.id, updatedCommentContent);
+                                                }}>
+                                                    <Form.Control
+                                                        as="textarea"
+                                                        rows={2}
+                                                        value={updatedCommentContent}
+                                                        onChange={(e) => setUpdatedCommentContent(e.target.value)}
+                                                        className="mb-2"
+                                                    />
+                                                    <div>
+                                                        <Button type="submit" variant="primary" size="sm" className="me-2">Save</Button>
+                                                        <Button
+                                                            variant="secondary"
+                                                            size="sm"
+                                                            onClick={() => setEditingComment(null)}
+                                                        >
+                                                            Cancel
+                                                        </Button>
+                                                    </div>
+                                                </Form>
+                                            ): (
+                                                <p className="mb-0 mt-2">{comment.content}</p>
+                                            )}
+                                        </ListGroup.Item>
+                                    ))
+                                )}
+                            </ListGroup>
+
+                            <Form onSubmit={handleAddComment}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Add a Comment</Form.Label>
+                                    <Form.Control
+                                        as="textarea"
+                                        rows={3}
+                                        value={newComment}
+                                        onChange={(e) => setNewComment(e.target.value)}
+                                        placeholder="Share your thoughts about this event..."
+                                    />
+                                </Form.Group>
+                                {commentError && <Alert variant="danger">{commentError}</Alert>}
+                                <Button type="submit" variant="primary">
+                                    Post Comment
+                                </Button>
+                            </Form>
+                        </Card.Body>
+                    </Card>
+                </Tab>
+
+                <Tab eventKey="tickets" title="Tickets">
+                    <Card className="mt-3">
+                        <Card.Body>
+                            <Card.Title>Available Tickets</Card.Title>
+                            {ticketPurchaseSuccess && (
+                                <Alert variant="success" className="mb-4">
+                                    Tickets purchased successfully
+                                </Alert>
+                            )}
+                            <ListGroup className="mb-4">
+                                {tickets.length === 0 ? (
+                                    <>
+                                        <ListGroup.Item>No tickets available for this event</ListGroup.Item>
+                                        <div className="text-center mt-3 mb-4">
+                                            <Button
+                                                variant="outline-primary"
+                                                onClick={() => handleGenerateTickets()}
+                                            >
+                                                Generate Tickets for this Event
+                                            </Button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    tickets.filter(ticket => !ticket.user_id).map(ticket => (
+                                        <ListGroup.Item key={ticket.id} className="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>${ticket.price}</strong>
+                                                {ticket.seat_number && <span className="ms-3">Seat: {ticket.seat_number}</span> }
+                                            </div>
+                                            <div>
+                                                <Form.Check
+                                                    type="checkbox"
+                                                    checked={selectedTickets.includes(ticket.id)}
+                                                    onChange={() => handleTicketSelection(ticket.id)}
+                                                    label="Select"
+                                                />
+                                                <Button
+                                                    variant="outline-primary"
+                                                    size="sm"
+                                                    className="me-2"
+                                                    onClick={() => {
+                                                        setEditingTicket(ticket.id)
+                                                        setUpdatedTicketData(
+                                                            {
+                                                                price: ticket.price,
+                                                                seat_number: ticket.seat_number
+                                                            })
+                                                    }}
+                                                >
+                                                    Edit
+                                                </Button>
+                                                <Button
+                                                    variant="outline-danger"
+                                                    size="sm"
+                                                    onClick={() => handleDeleteTicket(ticket.id)}
+                                                >
+                                                    Delete
+                                                </Button>
+                                            </div>
+
+                                        </ListGroup.Item>
+                                    ))
+                                )}
+                            </ListGroup>
+                            <div className="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Total: ${selectedTickets.reduce((sum, ticketId) => {
+                                        const ticket = tickets.find(t => t.id === ticketId);
+                                        return sum + (ticket ? parseFloat(ticket.price) : 0);
+                                    }, 0).toFixed(2)}</strong>
+                                </div>
+                                <Button
+                                    variant="success"
+                                    disabled={selectedTickets.length === 0}
+                                    onClick={handlePurchaseTickets}
+                                >
+                                    Purchase Tickets ({selectedTickets.length})
+                                </Button>
+                            </div>
+                        </Card.Body>
+                    </Card>
+
+                    <Card className="mt-4">
+                        <Card.Body>
+                            <Card.Title>Your Tickets</Card.Title>
+                            <ListGroup>
+                                {tickets.filter(ticket => ticket.user_id === userId).length === 0 ? (
+                                    <ListGroup.Item>You haven't purchased any tickets at the moment</ListGroup.Item>
+                                ) :(
+                                    tickets.filter(ticket => ticket.user_id === userId).map(ticket => (
+                                        <ListGroup.Item key={ticket.id}>
+                                            <div className="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <Badge bg="success" className="me-2">Purchased</Badge>
+                                                    <strong>${ticket.price}</strong>
+                                                    {ticket.seat_number && <span className="ms-3">Seat: {ticket.seat_number}</span> }
+                                                </div>
+                                                <Button variant="outline-secondary" size="sm">Download</Button>
+                                            </div>
+                                        </ListGroup.Item>
+                                    ))
+                                )}
+                            </ListGroup>
+                        </Card.Body>
+                    </Card>
+                </Tab>
+            </Tabs>
+            {editingTicket && (
+                <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050}}>
+                    <Card style={{width: '400px'}}>
+                        <Card.Header>Edit Ticket</Card.Header>
+                        <Card.Body>
+                            <Form onSubmit={(e) => {
+                                e.preventDefault()
+                                const ticket = tickets.find(t => t.id === editingTicket);
+                                handleUpdateTicket(editingTicket, updatedTicketData)
+                            }}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Price</Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        step="0.01"
+                                        value={updatedTicketData.price}
+                                        onChange={(e) => setUpdatedTicketData({...updatedTicketData, price: e.target.value})}
+                                        required
+                                    />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Seat Number</Form.Label>
+                                    <Form.Control
+                                        type="text"
+                                        value={updatedTicketData.seat_number || ""}
+                                        onChange={(e) => setUpdatedTicketData({...updatedTicketData, seat_number: e.target.value })}
+                                    />
+                                </Form.Group>
+                                <div className="d-flex justify-content-end">
+                                    <Button variant="secondary" className="me-2" onClick={() => setEditingTicket(null)}>
+                                        Cancel
+                                    </Button>
+                                    <Button variant="primary" type="submit">
+                                        Save Changes
+                                    </Button>
+                                </div>
+                            </Form>
+                        </Card.Body>
+                    </Card>
+                </div>
+            )}
+        </Container>
+    )
+}
+
+export default EventDetailPage
