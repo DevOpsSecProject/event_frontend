@@ -25,9 +25,9 @@ const EventList = ({ onSelect }) => {
 
   const handleUpdate = (id) => {
     updateEvent(id, eventData)
-      .then((updatedEvent) => {
-        setEvents(events.map((event) => (event.id === id ? updatedEvent : event)));
+      .then(() => {
         setEditingEventId(null);
+        window.location.reload();
       })
       .catch((error) => {
         console.error("Error updating event:", error);

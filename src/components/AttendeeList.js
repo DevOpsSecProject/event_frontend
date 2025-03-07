@@ -12,13 +12,13 @@ const AttendeeList = ({ eventId }) => {
 
   const handleRemove = (id) => {
     removeAttendee(eventId, id).then(() => {
-      setAttendees(attendees.filter((a) => a.id !== id));
+      setAttendees((prevAttendees) => prevAttendees.filter((a) => a.id !== id));
     });
   };
 
   const handleRSVP = (id) => {
-    updateAttendee(eventId, id, { rsvp: true }).then((res) => {
-      setAttendees(attendees.map((a) => (a.id === id ? res.data : a)));
+    updateAttendee(eventId, id, { rsvp: true }).then(() => {
+      window.location.reload();
     });
   };
 
@@ -28,9 +28,8 @@ const AttendeeList = ({ eventId }) => {
   };
 
   const handleUpdate = (id) => {
-    updateAttendee(eventId, id, updatedData).then((res) => {
-      setAttendees(attendees.map((a) => (a.id === id ? res.data : a)));
-      setEditingAttendee(null);
+    updateAttendee(eventId, id, updatedData).then(() => {
+      window.location.reload();
     });
   };
 
@@ -58,7 +57,9 @@ const AttendeeList = ({ eventId }) => {
             </div>
             <div>
               <small>{attendee.event?.description}</small><br />
-              <small>{new Date(attendee.event?.date).toLocaleString()}</small><br />
+              <small>
+                {attendee.event?.date ? new Date(attendee.event.date).toLocaleString() : "No Date Available"}
+              </small><br />
               <small>{attendee.event?.recurrence}</small>
             </div>
 
