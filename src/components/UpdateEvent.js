@@ -19,11 +19,12 @@ const UpdateEvent = ({ event, onEventUpdated }) => {
   const [description, setDescription] = useState(event.description);
   const [date, setDate] = useState(event.date);
   const [recurrence, setRecurrence] = useState(event.recurrence);
+  const [location, setLocation] = useState(event.location || "");
   //This is a function that handles the submission of the updated create event form
   const handleSubmit = (e) => {
     e.preventDefault();
     //API call to update the event
-    updateEvent(event.id, { title, description, date, recurrence }).then((res) => {
+    updateEvent(event.id, { title, description, date,location }).then((res) => {
       //passes the updated event data to the parent component
       onEventUpdated(res.data);
     });
@@ -55,6 +56,15 @@ const UpdateEvent = ({ event, onEventUpdated }) => {
             placeholder="Description"
             required
           />
+        </div>
+        <div className="mb-3">
+          <input
+              type="text"
+              className="form-control"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Location"
+            />
         </div>
         {/* Event Date and Time Input */}
         <div className="mb-3">

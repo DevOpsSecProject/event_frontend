@@ -19,12 +19,13 @@ const CreateEvent = ({ onEventCreated }) => {
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
   const [recurrence, setRecurrence] = useState("daily");
+  const [location, setLocation] =useState("")
   //This is a function that handles the submission of the create event form
   const handleSubmit = (e) => {
     e.preventDefault();
     //This calls the backend API to create the event with the provided data
-    createEvent({ title, description, date, recurrence }).then((res) => {
-      //Thid passes the newly created event  back to the parent component
+    createEvent({ title, description, date, recurrence, location }).then((res) => {
+      //This passes the newly created event  back to the parent component
       onEventCreated(res.data);
       //This clears the form fields once an event has been created
       setTitle("");
@@ -75,6 +76,16 @@ const CreateEvent = ({ onEventCreated }) => {
             onChange={(e) => setDate(e.target.value)}
             required
           />
+        </div>
+        <div className="mb-3">
+          <input
+            type="text"
+            className="form-control"
+            value={location}
+            onChange={(e) => setLocation((e.target.value))}
+            placeholder="Location"
+            required
+            />
         </div>
         {/* Recurrence Dropdown */}
         <div className="mb-3">

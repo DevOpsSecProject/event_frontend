@@ -28,16 +28,17 @@ const EventList = ({ onSelect }) => {
   const handleDelete = (id) => {
     deleteEvent(id).then(() => setEvents(events.filter((event) => event.id !== id)));
   };
-  //This is a funtion that initiates the event editing update
+  //This is a function that initiates the event editing update
   const handleEdit = (event) => {
     setEditingEventId(event.id);
     setEventData({
       title: event.title,
       description: event.description,
       date: event.date,
+      location: event.location || ""
     });
   };
-  //This is a funtion that handles the updating of the event
+  //This is a function that handles the updating of the event
   const handleUpdate = (id) => {
     updateEvent(id, eventData)
       .then(() => {
@@ -48,7 +49,7 @@ const EventList = ({ onSelect }) => {
         console.error("Error updating event:", error);
       });
   };
-  //This is a funtion to handle form input change
+  //This is a function to handle form input change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setEventData((prevData) => ({ ...prevData, [name]: value }));
@@ -106,6 +107,15 @@ const EventList = ({ onSelect }) => {
                     onChange={handleChange}
                     className="form-control mb-2"
                   />
+                  {/*Adding missing location field*/}
+                  <input
+                    type="text"
+                    name="location"
+                    value={eventData.location || ""}
+                    onChange={handleChange}
+                    placeholder="Event Location"
+                    className="form-control mb-2"
+                    />
                   {/* Save Button */}
                   <button className="btn btn-success me-2" onClick={() => handleUpdate(event.id)}>
                     Save
