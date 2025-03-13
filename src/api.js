@@ -16,7 +16,7 @@ export const deleteEvent = (id) => axios.delete(`${API_URL}/events/${id}`);
 //This fetches the list of attendees for a specific event
 export const getAttendees = (eventId) => axios.get(`${API_URL}/events/${eventId}/attendees`);
 //This adds a new attendee to an event with their own data
-export const addAttendee = (data) => axios.post(`${API_URL}/attendees`, data);
+export const addAttendee = (data) => axios.post(`${API_URL}/events/${data.event_id}/attendees`, data);
 //This updates an added attendees details such as their name or email
 export const updateAttendee = (eventId, id, data) => axios.put(`${API_URL}/events/${eventId}/attendees/${id}`, { attendee: data });
 //this deletes an attendee from a specific event based on their id
