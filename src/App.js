@@ -1,6 +1,6 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useState } from "react";
-import {Container, Row, Col, Nav, Tab, Button, Table} from "react-bootstrap";
+import {Container, Row, Col, Nav, Tab, Button} from "react-bootstrap";
 import EventList from "./components/EventList";
 import CreateEvent from "./components/CreateEvent";
 import AttendeeList from "./components/AttendeeList";

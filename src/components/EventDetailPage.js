@@ -2,6 +2,7 @@ import React, {useState, useEffect} from "react";
 import axios from 'axios';
 import { Container, Row, Col, Card, Button, Form, ListGroup, Badge, Alert, Tabs, Tab} from 'react-bootstrap'
 
+const API_URL = "http://52.7.175.102:3000"
 const EventDetailPage = ({eventId}) => {
 
     const [event, setEvent] = useState(null);
@@ -33,21 +34,21 @@ const EventDetailPage = ({eventId}) => {
         const fetchEventData = async () =>{
             try{
                 setLoading(true);
-                const eventResponse = await axios.get(`/events/${eventId}`);
+                const eventResponse = await axios.get(`${API_URL}/events/${eventId}`);
                 setEvent(eventResponse.data);
 
-                const commentsResponse = await axios.get(`/events/${eventId}/comments`);
+                const commentsResponse = await axios.get(`${API_URL}/events/${eventId}/comments`);
                 setComments(commentsResponse.data)
 
                 try{
-                    const favoriteResponse = await axios.get(`/users/${userId}/favourites`);
+                    const favoriteResponse = await axios.get(`${API_URL}/users/${userId}/favourites`);
                     const userFavorites = favoriteResponse.data;
                     setIsFavorite(userFavorites.some(fav => fav.event_id === eventId));
                 } catch (err){
                     console.error("Error checking favourite status:", err);
                 }
 
-                const ticketsResponse = await axios.get(`/events/${eventId}/tickets`);
+                const ticketsResponse = await axios.get(`${API_URL}/events/${eventId}/tickets`);
                 setTickets(ticketsResponse.data);
 
                 setLoading(false);
@@ -70,7 +71,7 @@ const EventDetailPage = ({eventId}) => {
         }
 
         try{
-            const response = await axios.post(`/events/${eventId}/comments`, {
+            const response = await axios.post(`${API_URL}/events/${eventId}/comments`, {
                 comment: {
                     content: newComment,
                     user_id: userId,
@@ -90,15 +91,15 @@ const EventDetailPage = ({eventId}) => {
     const handleToggleFavorite = async () => {
         try {
             if (isFavorite) {
-                const favoriteResponse = await axios.get(`/users/${userId}/favourites`);
+                const favoriteResponse = await axios.get(`${API_URL}/users/${userId}/favourites`);
                 const favorite = favoriteResponse.data.find(fav => fav.event_id === eventId);
 
                 if (favorite) {
-                    await axios.delete(`/favourites/${favorite.id}`);
+                    await axios.delete(`${API_URL}/favourites/${favorite.id}`);
                     setIsFavorite(false);
                 }
             } else {
-                await axios.post('favourites', {
+                await axios.post(`${API_URL}/favourites`, {
                     favourite: {
                         user_id: userId,
                         event_id: eventId
@@ -124,8 +125,8 @@ const EventDetailPage = ({eventId}) => {
 
     const handleGenerateTickets = async () => {
         try{
-            await axios.post(`/events/${eventId}/generate_tickets`);
-            const ticketResponse = await axios.get(`/events/${eventId}/tickets`);
+            await axios.post(`${API_URL}/events/${eventId}/generate_tickets`);
+            const ticketResponse = await axios.get(`${API_URL}/events/${eventId}/tickets`);
             setTickets(ticketResponse.data);
             alert('Tickets have been generated successfully')
         }catch(err){
@@ -136,7 +137,7 @@ const EventDetailPage = ({eventId}) => {
 
     const handleDeleteComment = async (commentId) => {
         try{
-            await axios.delete(`/events/${eventId}/comments/${commentId}`);
+            await axios.delete(`${API_URL}/events/${eventId}/comments/${commentId}`);
             setComments(comments.filter(comment => comment.id !== commentId));
         }catch (err){
             console.error("Error deleting comment:", err)
@@ -151,7 +152,7 @@ const EventDetailPage = ({eventId}) => {
 
     const handleUpdateComment = async (commentId, updatedComment) => {
         try {
-            const response = await axios.patch(`/events/${eventId}/comments/${commentId}`, {
+            const response = await axios.patch(`${API_URL}/events/${eventId}/comments/${commentId}`, {
                 comment: {
                     content: updatedComment
                 }
@@ -168,7 +169,7 @@ const EventDetailPage = ({eventId}) => {
 
     const handleDeleteTicket = async (ticketId) => {
         try{
-            await axios.delete(`/tickets/${ticketId}`);
+            await axios.delete(`${API_URL}/tickets/${ticketId}`);
             setTickets(tickets.filter(ticket => ticket.id !== ticketId));
         }catch (err){
             console.error("Error deleting tickets", err);
@@ -178,7 +179,7 @@ const EventDetailPage = ({eventId}) => {
 
     const handleUpdateTicket = async (ticketId, updatedData) =>{
         try{
-            const response = await axios.patch(`/tickets/${ticketId}`, {
+            const response = await axios.patch(`${API_URL}/tickets/${ticketId}`, {
                 ticket: updatedData
             });
             setTickets(tickets.map(ticket =>
@@ -195,7 +196,7 @@ const EventDetailPage = ({eventId}) => {
 
         try{
             const purchasePromises = selectedTickets.map(ticketId =>
-                axios.patch(`/tickets/${ticketId}`, {
+                axios.patch(`${API_URL}/tickets/${ticketId}`, {
                     ticket: {
                         user_id: userId
                     }
@@ -465,7 +466,6 @@ const EventDetailPage = ({eventId}) => {
                         <Card.Body>
                             <Form onSubmit={(e) => {
                                 e.preventDefault()
-                                const ticket = tickets.find(t => t.id === editingTicket);
                                 handleUpdateTicket(editingTicket, updatedTicketData)
                             }}>
                                 <Form.Group className="mb-3">
