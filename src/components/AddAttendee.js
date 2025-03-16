@@ -21,8 +21,14 @@ const AddAttendee = ({ eventId, onAttendeeAdded }) => {
   const handleSubmit = (e) => {
     //This prevents the default form submission behavior when the page reloads, this is for handling unwanted behaviour during form submission
     e.preventDefault();
+
+    const attendeeData = {
+      name,
+      email,
+      rsvp: true
+    }
     //This calls the API function to add the attendee, while also passing the necessary details needed such as name, email, event_id and the rsvp
-    addAttendee({ name, email, event_id: eventId, rsvp: true }).then((res) => {
+    addAttendee(eventId, attendeeData).then((res) => {
       //This calls the react frontend parent component's function to update the UI with the new attendee so that it will be visable in the attendee list
       onAttendeeAdded(res.data);
       //This clears the input fields from the form after successful submission, to keep the form clean and ready for another use
