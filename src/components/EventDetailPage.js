@@ -1,21 +1,21 @@
 import React, {useState, useEffect} from "react";
 import axios from 'axios';
 import { Container, Row, Col, Card, Button, Form, ListGroup, Badge, Alert, Tabs, Tab} from 'react-bootstrap'
-
+// Base API URL for all backend requests
 const API_URL = "http://52.7.175.102:3000"
 const EventDetailPage = ({eventId}) => {
-
+    // Event data state
     const [event, setEvent] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
+    // Comments state
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
     const [commentError, setCommentError] = useState('');
-
+    // Favourites state
     const [isFavorite, setIsFavorite] = useState(false);
     const [favoriteError, setFavoriteError] = useState('');
-
+    // Tickets state
     const [tickets, setTickets] = useState([])
     const [selectedTickets, setSelectedTickets] = useState([]);
     const [ticketPurchaseSuccess, setTicketPurchaseSuccess] = useState(false);
@@ -26,20 +26,21 @@ const EventDetailPage = ({eventId}) => {
         price: "",
         seat_number: ""
     })
-    // initialise to this index
+    // initialise to this index, as this is a hardcoded user ID only for development purposes
     const userId = 1;
 
-
+    // Fetch all event related data when component mounts/ or when the eventID/userID changes
     useEffect(() => {
         const fetchEventData = async () =>{
             try{
                 setLoading(true);
+                // Fetch event details
                 const eventResponse = await axios.get(`${API_URL}/events/${eventId}`);
                 setEvent(eventResponse.data);
-
+                // Fetch event comments
                 const commentsResponse = await axios.get(`${API_URL}/events/${eventId}/comments`);
                 setComments(commentsResponse.data)
-
+                // Check if event is in users favourites
                 try{
                     const favoriteResponse = await axios.get(`${API_URL}/users/${userId}/favourites`);
                     const userFavorites = favoriteResponse.data;
@@ -47,7 +48,7 @@ const EventDetailPage = ({eventId}) => {
                 } catch (err){
                     console.error("Error checking favourite status:", err);
                 }
-
+                // Fetch available tickets for events
                 const ticketsResponse = await axios.get(`${API_URL}/events/${eventId}/tickets`);
                 setTickets(ticketsResponse.data);
 
@@ -61,10 +62,10 @@ const EventDetailPage = ({eventId}) => {
 
         fetchEventData();
     }, [eventId, userId]);
-
+    // Handles adding a new comment to the event
     const handleAddComment = async (e) => {
         e.preventDefault();
-
+        // Validate comment content
         if (!newComment.trim()) {
             setCommentError('Comment cannot be empty');
             return;
@@ -87,7 +88,7 @@ const EventDetailPage = ({eventId}) => {
             console.error(err);
         }
     };
-
+    // Toggles whether the event is in the users favourites
     const handleToggleFavorite = async () => {
         try {
             if (isFavorite) {
@@ -99,6 +100,7 @@ const EventDetailPage = ({eventId}) => {
                     setIsFavorite(false);
                 }
             } else {
+                // Add to favourites
                 await axios.post(`${API_URL}/favourites`, {
                     favourite: {
                         user_id: userId,
@@ -114,7 +116,7 @@ const EventDetailPage = ({eventId}) => {
             console.error(err);
         }
     };
-
+    // Toggles ticket selection
     const handleTicketSelection = (ticketId) => {
         if (selectedTickets.includes(ticketId)) {
             setSelectedTickets(selectedTickets.filter(id => id !== ticketId));
@@ -123,6 +125,7 @@ const EventDetailPage = ({eventId}) => {
         }
     }
 
+    // Generate new tickets fo the event through the API
     const handleGenerateTickets = async () => {
         try{
             await axios.post(`${API_URL}/events/${eventId}/generate_tickets`);
@@ -135,6 +138,7 @@ const EventDetailPage = ({eventId}) => {
         }
     }
 
+    // Delete a comment from the event
     const handleDeleteComment = async (commentId) => {
         try{
             await axios.delete(`${API_URL}/events/${eventId}/comments/${commentId}`);
@@ -150,6 +154,7 @@ const EventDetailPage = ({eventId}) => {
         }
     };
 
+    // Updates existing comment with new comment
     const handleUpdateComment = async (commentId, updatedComment) => {
         try {
             const response = await axios.patch(`${API_URL}/events/${eventId}/comments/${commentId}`, {
@@ -157,6 +162,7 @@ const EventDetailPage = ({eventId}) => {
                     content: updatedComment
                 }
             });
+            // Update comment local state
             setComments(comments.map(comment =>
                 comment.id === commentId ? response.data : comment
             ))
@@ -167,6 +173,7 @@ const EventDetailPage = ({eventId}) => {
         }
     }
 
+    // Deletes a ticket from an event
     const handleDeleteTicket = async (ticketId) => {
         try{
             await axios.delete(`${API_URL}/tickets/${ticketId}`);
@@ -176,7 +183,7 @@ const EventDetailPage = ({eventId}) => {
             alert("Failed to delete ticket")
         }
     }
-
+    // Updates an existing ticket with new data
     const handleUpdateTicket = async (ticketId, updatedData) =>{
         try{
             const response = await axios.patch(`${API_URL}/tickets/${ticketId}`, {
@@ -191,6 +198,8 @@ const EventDetailPage = ({eventId}) => {
             alert("Failed to update ticket")
         }
     }
+
+    // Process the purchase of all selected tickets
     const handlePurchaseTickets = async () => {
         if(selectedTickets.length === 0) return;
 
@@ -216,7 +225,7 @@ const EventDetailPage = ({eventId}) => {
             setTickets(updatedTickets);
             setSelectedTickets([]);
             setTicketPurchaseSuccess(true);
-
+            // Auto hide success message after 3 seconds
             setTimeout(() =>{
                 setTicketPurchaseSuccess(false);
             }, 3000);
@@ -225,12 +234,14 @@ const EventDetailPage = ({eventId}) => {
         }
     };
 
+    // Loading error and not fount states
     if (loading) return <div className="text-center my-5">Loading event details...</div>;
     if (error) return <Alert variant="danger">{error}</Alert>;
     if (!event) return <Alert variant="warning">Event not found</Alert>;
 
     return(
         <Container className="py-5">
+            {/* Event Header Section*/}
             <Row className="mb-4">
                 <Col>
                     <div className="d-flex justify-content-between align-items-start">
@@ -252,6 +263,7 @@ const EventDetailPage = ({eventId}) => {
                 </Col>
             </Row>
 
+            {/* Event Description Card */}
             <Row className="mb-4">
                 <Col>
                     <Card>
@@ -263,12 +275,14 @@ const EventDetailPage = ({eventId}) => {
                 </Col>
             </Row>
 
+            {/* Tabs for comments and tickets*/}
             <Tabs defaultActiveKey="comments" className="mb-5">
+                {/* Comments tab*/}
                 <Tab eventKey="comments" title="Comments">
                     <Card className="mt-3">
                         <Card.Body>
                             <Card.Title>Comments & Notes</Card.Title>
-
+                            {/* Comments List */}
                             <ListGroup variant="flush" className="mb-4">
                                 {comments.length === 0 ? (
                                     <ListGroup.Item>No comments yet. Be the first to add one</ListGroup.Item>
@@ -301,6 +315,7 @@ const EventDetailPage = ({eventId}) => {
                                                     </Button>
                                                 </div>
                                             </div>
+                                            {/* Editing Interface for comments*/}
                                             {editingComment === comment.id ? (
                                                 <Form className="mt-2" onSubmit={(e) => {
                                                     e.preventDefault()
@@ -332,6 +347,7 @@ const EventDetailPage = ({eventId}) => {
                                 )}
                             </ListGroup>
 
+                            {/* Add Comment Form */}
                             <Form onSubmit={handleAddComment}>
                                 <Form.Group className="mb-3">
                                     <Form.Label>Add a Comment</Form.Label>
@@ -352,15 +368,18 @@ const EventDetailPage = ({eventId}) => {
                     </Card>
                 </Tab>
 
+                {/* Tickets Tab*/}
                 <Tab eventKey="tickets" title="Tickets">
                     <Card className="mt-3">
                         <Card.Body>
                             <Card.Title>Available Tickets</Card.Title>
+                            {/* Purchase success message*/}
                             {ticketPurchaseSuccess && (
                                 <Alert variant="success" className="mb-4">
                                     Tickets purchased successfully
                                 </Alert>
                             )}
+                            {/* Available Tickets list*/}
                             <ListGroup className="mb-4">
                                 {tickets.length === 0 ? (
                                     <>
@@ -382,6 +401,7 @@ const EventDetailPage = ({eventId}) => {
                                                 {ticket.seat_number && <span className="ms-3">Seat: {ticket.seat_number}</span> }
                                             </div>
                                             <div>
+                                                {/* Ticket selection box*/}
                                                 <Form.Check
                                                     type="checkbox"
                                                     checked={selectedTickets.includes(ticket.id)}
@@ -416,6 +436,7 @@ const EventDetailPage = ({eventId}) => {
                                     ))
                                 )}
                             </ListGroup>
+                            {/* Purchase summary button*/}
                             <div className="d-flex justify-content-between align-items-center">
                                 <div>
                                     <strong>Total: ${selectedTickets.reduce((sum, ticketId) => {
@@ -433,7 +454,7 @@ const EventDetailPage = ({eventId}) => {
                             </div>
                         </Card.Body>
                     </Card>
-
+                    {/* Purchased User tickets */}
                     <Card className="mt-4">
                         <Card.Body>
                             <Card.Title>Your Tickets</Card.Title>
@@ -459,6 +480,8 @@ const EventDetailPage = ({eventId}) => {
                     </Card>
                 </Tab>
             </Tabs>
+
+            {/* Ticket edit modal */}
             {editingTicket && (
                 <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050}}>
                     <Card style={{width: '400px'}}>
